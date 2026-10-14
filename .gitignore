@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 插件本地配置（含个人 Python 路径等，不应入库）
+data.json
+
+# Obsidian / 系统
+.obsidian/
+.DS_Store
+Thumbs.db
+*.log

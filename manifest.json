@@ -1,0 +1,9 @@
+{
+  "id": "pdf2md",
+  "name": "PDF 转 Markdown",
+  "version": "1.1.0",
+  "minAppVersion": "1.0.0",
+  "description": "右键 PDF / PPT 一键转换为 Markdown：图片自动存入同目录 attachments/，文本按阅读顺序提取。PPT 支持每页渲染为图片 + 文字/表格提取。",
+  "author": "obsidian_pdf2md",
+  "isDesktopOnly": true
+}
