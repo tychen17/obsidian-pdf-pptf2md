@@ -18,6 +18,7 @@ class Pdf2MdPlugin extends Plugin {
   async onload() {
     await this.loadSettings();
 
+    // 右键菜单：PDF / PPT -> 转换为 Markdown
     this.registerEvent(
       this.app.workspace.on("file-menu", (menu, file) => {
         if (!(file instanceof TFile)) return;
@@ -46,6 +47,7 @@ class Pdf2MdPlugin extends Plugin {
       })
     );
 
+    // 命令面板
     this.addCommand({
       id: "convert-active-pdf",
       name: "将当前打开的 PDF 转换为 Markdown",
@@ -102,6 +104,7 @@ class Pdf2MdPlugin extends Plugin {
     if (!isPdf && !isPpt) return;
     const kind = isPdf ? "PDF" : "PPT";
 
+    // 预检查：若已存在同名且非本插件生成的 Markdown，不覆盖
     const mdPath = file.path.replace(/\.[^.]+$/i, ".md");
     const existing = this.app.vault.getAbstractFileByPath(mdPath);
     if (existing instanceof TFile) {
@@ -117,6 +120,7 @@ class Pdf2MdPlugin extends Plugin {
       }
     }
 
+    // file.path 是库内相对路径，需转为磁盘绝对路径再交给 Python 脚本
     let absPath = file.path;
     try {
       const adapter = this.app.vault.adapter;
@@ -144,6 +148,7 @@ class Pdf2MdPlugin extends Plugin {
     this.execPython(py.cmd, py.prefix, args, 0);
   }
 
+  // 插件目录绝对路径：Obsidian 的 manifest.dir 是相对仓库的路径，需拼上仓库绝对路径
   pluginDir() {
     const adapter = this.app.vault.adapter;
     let base = "";
@@ -165,6 +170,7 @@ class Pdf2MdPlugin extends Plugin {
     return path.join(base, this.manifest.dir);
   }
 
+  // 解释器选择：设置里填写的路径 > 插件自带 .venv > 系统 python
   resolvePython() {
     const custom = this.settings.pythonPath.trim();
     if (custom) return { cmd: custom, prefix: this.pyPrefix(custom) };
@@ -186,6 +192,7 @@ class Pdf2MdPlugin extends Plugin {
       { timeout: 900000, maxBuffer: 64 * 1024 * 1024, windowsHide: true },      (err, stdout, stderr) => {
         const out = (stdout || "") + "\n" + (stderr || "");
 
+        // 依赖缺失自动安装（如 PyMuPDF / python-pptx / pywin32）
         let pkg = null;
         const m1 = String(out).match(/No module named '?([A-Za-z0-9_.]+)'?/);
         if (m1 && PIP_PACKAGES[m1[1]]) pkg = PIP_PACKAGES[m1[1]];

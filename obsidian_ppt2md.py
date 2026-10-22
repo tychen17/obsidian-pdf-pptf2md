@@ -1,6 +1,35 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import argparse
 import hashlib
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -25,6 +54,17 @@ def win_long_path(p: Path) -> Path:
 
 def log(msg: str) -> None:
     print(msg, flush=True)
+
+
+_SAFE_NAME_RE = re.compile(r"[^0-9A-Za-z一-鿿._-]+")
+
+
+def safe_stem(name: str) -> str:
+    """净化图片文件名前缀：仅保留字母、数字、中文、点、下划线、连字符，
+    其余字符（空格、括号、方括号、# 等 Markdown 不安全字符）替换为连字符。"""
+    s = _SAFE_NAME_RE.sub("-", name)
+    s = re.sub(r"-{2,}", "-", s).strip("-.")
+    return s or "image"
 
 
 def md_table(rows) -> str:
@@ -131,7 +171,7 @@ def render_with_libreoffice(ppt_path: Path, att_dir: Path, stem: str, soffice: s
 
 def render_slides(ppt_path: Path, att_dir: Path, lock) -> int:
     """渲染每页幻灯片为 PNG；依次尝试 PowerPoint -> LibreOffice。"""
-    stem = ppt_path.stem
+    stem = safe_stem(ppt_path.stem)
     n = render_with_powerpoint(ppt_path, att_dir, stem, lock)
     if n:
         return n
@@ -264,7 +304,7 @@ def convert_one(ppt_path: Path, args, stats: dict, lock) -> None:
                 return
 
         att_dir = ppt_path.parent / ATTACH_DIR_NAME
-        stem = ppt_path.stem
+        stem = safe_stem(ppt_path.stem)
         md_lines = []
         if not args.no_frontmatter:
             md_lines += [
@@ -347,11 +387,11 @@ def main() -> None:
         description="将 PowerPoint(.ppt/.pptx) 批量转换为 Markdown（每页渲染为图片 + 文字/表格提取）",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="示例：\n"
-               "  python obsidian_ppt2md.py                      # 转换当前目录下的全部 PPT\n"
-               "  python obsidian_ppt2md.py \"D:\\notes\\a.pptx\"    # 转换单个文件",
+               "  python obsidian_ppt2md.py                      # 转换整个库（默认 D:\\obsidian）\n"
+               "  python obsidian_ppt2md.py \"D:\\obsidian\\a.pptx\"  # 转换单个文件",
     )
-    parser.add_argument("target", nargs="?", default=".",
-                        help="要扫描的目录，或单个 .ppt/.pptx 文件（默认当前目录）")
+    parser.add_argument("target", nargs="?", default=r"D:\obsidian",
+                        help="要扫描的目录，或单个 .ppt/.pptx 文件（默认 D:\\obsidian）")
     parser.add_argument("--dry-run", action="store_true", help="只列出将要转换的文件，不执行任何写入")
     parser.add_argument("--force", action="store_true", help="强制重新转换，并允许覆盖同名 Markdown")
     parser.add_argument("--no-frontmatter", action="store_true", help="不写入 YAML frontmatter")

@@ -116,6 +116,7 @@ python obsidian_ppt2md.py "D:\notes\a.pptx"        :: 转换单个文件
 
 - 输出：`源文件名.md` + `attachments/`（提取的图片、整页渲染 PNG）；
 - Markdown 内使用相对路径 `![](attachments/xxx.png)`，Obsidian 与通用渲染器均可显示；
+- 生成的图片文件名会净化掉空格、`()`、`[]`、`#` 等 Markdown 不安全字符，避免链接被提前截断；
 - md 头部写入 YAML frontmatter（`source`、`converted_at`）；
 - 已生成且未变更 → 自动跳过（增量）；
 - 已存在同名 md 但非本插件生成 → 不覆盖（保护模式），`--force` 才覆盖。
@@ -125,3 +126,7 @@ python obsidian_ppt2md.py "D:\notes\a.pptx"        :: 转换单个文件
 - 扫描件（纯图片 PDF）没有文本层，直接转换只能得到图片；需要 `--ocr`（另装 tesseract-ocr 与中文语言包）或使用「每页渲染为图片」；
 - 复杂版式的文字顺序按位置排序提取，可能不够完美；
 - PPT 的备注页、动画、母版内容不提取。
+
+## License
+
+[MIT](LICENSE)

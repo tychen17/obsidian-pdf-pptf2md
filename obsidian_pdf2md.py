@@ -1,6 +1,38 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import argparse
 import hashlib
 import os
+import re
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -34,6 +66,17 @@ def win_long_path(p: Path) -> Path:
 def clean_text(s: str) -> str:
     """去掉提取文本中的控制字符（保留换行与制表符）。"""
     return "".join(ch if ch in "\n\t" or ord(ch) >= 32 else "" for ch in s)
+
+
+_SAFE_NAME_RE = re.compile(r"[^0-9A-Za-z一-鿿._-]+")
+
+
+def safe_stem(name: str) -> str:
+    """净化图片文件名前缀：仅保留字母、数字、中文、点、下划线、连字符，
+    其余字符（空格、括号、方括号、# 等 Markdown 不安全字符）替换为连字符。"""
+    s = _SAFE_NAME_RE.sub("-", name)
+    s = re.sub(r"-{2,}", "-", s).strip("-.")
+    return s or "image"
 
 
 def log(msg: str) -> None:
@@ -111,6 +154,7 @@ def convert_one(pdf_path: Path, args, stats: dict, lock: threading.Lock, ocr_war
             return
 
         att_dir = pdf_path.parent / ATTACH_DIR_NAME
+        stem = safe_stem(pdf_path.stem)
         md_lines = []
         if not args.no_frontmatter:
             md_lines += [
@@ -209,7 +253,7 @@ def convert_one(pdf_path: Path, args, stats: dict, lock: threading.Lock, ocr_war
                             continue
                         data, ext = normalize_image(data, ext)
                         image_counter += 1
-                        fname = f"{pdf_path.stem}-p{pno + 1:03d}-img-{image_counter:02d}.{ext}"
+                        fname = f"{stem}-p{pno + 1:03d}-img-{image_counter:02d}.{ext}"
                         att_dir.mkdir(exist_ok=True)
                         try:
                             win_long_path(att_dir / fname).write_bytes(data)
@@ -230,7 +274,7 @@ def convert_one(pdf_path: Path, args, stats: dict, lock: threading.Lock, ocr_war
                 try:
                     pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
                     att_dir.mkdir(exist_ok=True)
-                    pfname = f"{pdf_path.stem}-page-{pno + 1:03d}.png"
+                    pfname = f"{stem}-page-{pno + 1:03d}.png"
                     pix.save(str(att_dir / pfname))
                     page_md.insert(0, f"![](attachments/{pfname})")
                     page_md.insert(1, "")
@@ -269,12 +313,12 @@ def main() -> None:
         description="将 Obsidian 知识库中的 PDF 批量转换为 Markdown（图片存入同目录 attachments/）",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="示例：\n"
-               "  python obsidian_pdf2md.py                      # 转换当前目录下的全部 PDF\n"
-               "  python obsidian_pdf2md.py \"D:\\notes\"           # 只转换指定目录\n"
+               "  python obsidian_pdf2md.py                      # 转换整个库（默认 D:\\obsidian）\n"
+               "  python obsidian_pdf2md.py \"D:\\obsidian\\某目录\"  # 只转换指定子目录\n"
                "  python obsidian_pdf2md.py --dry-run            # 仅预览，不写入",
     )
-    parser.add_argument("target", nargs="?", default=".",
-                        help="要扫描的目录，或单个 PDF 文件（默认当前目录）")
+    parser.add_argument("target", nargs="?", default=r"D:\obsidian",
+                        help="要扫描的目录，或单个 PDF 文件（默认 D:\\obsidian）")
     parser.add_argument("--dry-run", action="store_true", help="只列出将要转换的 PDF，不执行任何写入")
     parser.add_argument("--force", action="store_true", help="强制重新转换，并允许覆盖同名 Markdown")
     parser.add_argument("--workers", type=int, default=4, help="并行线程数（默认 4）")
